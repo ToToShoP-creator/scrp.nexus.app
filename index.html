@@ -1,1 +1,338 @@
+<!DOCTYPE html>
+<html lang="uk" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SCRP Nexus // Cyber Finance PWA</title>
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0D0E15">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#0D0E15',
+                            card: '#161821',
+                            border: '#2A2E43',
+                            pink: '#FF007F',
+                            cyan: '#00F0FF',
+                            purple: '#7B2CBF',
+                            text: '#E2E8F0',
+                            muted: '#94A3B8'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-pink': '0 0 15px rgba(255, 0, 127, 0.4)',
+                        'neon-cyan': '0 0 15px rgba(0, 240, 255, 0.4)',
+                        'neon-purple': '0 0 15px rgba(123, 44, 191, 0.4)',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Chart.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-cyber-bg text-cyber-text font-sans antialiased min-h-screen selection:bg-cyber-pink selection:text-white">
 
+    <!-- Auth View -->
+    <div id="auth-view" class="fixed inset-0 z-50 flex items-center justify-center bg-cyber-bg/95 backdrop-blur-md p-4">
+        <div class="w-full max-w-md bg-cyber-card border border-cyber-border rounded-2xl p-6 shadow-neon-cyan relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-32 h-32 bg-cyber-cyan/10 rounded-full blur-2xl"></div>
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyber-cyan to-cyber-pink">SCRP NEXUS</h1>
+                <p class="text-cyber-muted text-sm mt-1">Cyberpunk Financial Terminal v2.6</p>
+            </div>
+            
+            <form id="auth-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Email / ID</label>
+                    <input type="email" id="auth-email" required class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyber-cyan transition-colors" placeholder="user@nexus.net">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Пароль / Access Key</label>
+                    <input type="password" id="auth-password" required class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyber-cyan transition-colors" placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-cyber-cyan to-cyber-purple text-cyber-bg font-bold py-3 rounded-xl shadow-neon-cyan hover:opacity-95 transition-all">
+                    ІНІЦІАЛІЗУВАТИ СЕСІЮ
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <button id="telegram-auth-btn" class="w-full bg-[#2AABEE]/20 border border-[#2AABEE] text-[#2AABEE] font-semibold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-[#2AABEE]/30 transition-all">
+                    <i class="fab fa-telegram-plane text-lg"></i> Вхід через Telegram
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="app-container" class="pb-24 max-w-md mx-auto min-h-screen relative hidden">
+        
+        <!-- Header -->
+        <header class="px-4 py-4 flex items-center justify-between border-b border-cyber-border bg-cyber-card/50 backdrop-blur-md sticky top-0 z-30">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyber-pink to-cyber-cyan p-0.5 shadow-neon-pink">
+                    <img id="user-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=SCRP" alt="Avatar" class="w-full h-full rounded-[10px] bg-cyber-bg object-cover">
+                </div>
+                <div>
+                    <h2 id="user-display-name" class="font-bold text-sm tracking-wide">Nexus Operative</h2>
+                    <span class="text-[10px] text-cyber-cyan font-mono uppercase bg-cyber-cyan/10 px-2 py-0.5 rounded-full border border-cyber-cyan/30">Online</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="install-pwa-btn" class="hidden w-9 h-9 rounded-xl bg-cyber-card border border-cyber-border flex items-center justify-center text-cyber-cyan hover:border-cyber-cyan transition-all">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button onclick="app.openModal('admin-modal')" class="w-9 h-9 rounded-xl bg-cyber-card border border-cyber-border flex items-center justify-center text-cyber-pink hover:border-cyber-pink transition-all">
+                    <i class="fas fa-shield-alt"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dynamic Views -->
+        <main class="p-4 space-y-6">
+            
+            <!-- Dashboard View -->
+            <section id="view-dashboard" class="space-y-6">
+                <!-- Balance Card -->
+                <div class="bg-gradient-to-br from-cyber-card to-cyber-border/40 border border-cyber-border rounded-2xl p-5 shadow-neon-purple relative overflow-hidden">
+                    <div class="absolute right-0 bottom-0 translate-x-4 translate-y-4 w-32 h-32 bg-cyber-purple/10 rounded-full blur-2xl"></div>
+                    <span class="text-xs uppercase tracking-wider text-cyber-muted font-mono">Доступний баланс</span>
+                    <div class="text-3xl font-black mt-1 tracking-tight text-white flex items-baseline gap-2">
+                        <span id="total-balance">0.00</span> <span id="currency-symbol" class="text-sm font-normal text-cyber-cyan">₴</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-cyber-border/60">
+                        <div>
+                            <span class="text-[10px] uppercase text-cyber-muted block">Доходи (Місяць)</span>
+                            <span id="total-income" class="text-emerald-400 font-bold text-sm">+0.00</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase text-cyber-muted block">Витрати (Місяць)</span>
+                            <span id="total-expense" class="text-cyber-pink font-bold text-sm">-0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ad Banner (Dynamic Admin Integration) -->
+                <div id="dynamic-ad-banner" class="hidden bg-gradient-to-r from-cyber-pink/20 to-cyber-purple/20 border border-cyber-pink/40 rounded-2xl p-4 flex items-center justify-between shadow-neon-pink">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyber-pink/30 flex items-center justify-center text-cyber-pink">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                        <div>
+                            <h4 id="ad-title" class="text-xs font-bold uppercase tracking-wider text-cyber-pink">Спеціальна пропозиція</h4>
+                            <p id="ad-text" class="text-[11px] text-cyber-muted mt-0.5">Оновіть обладнання в ToToShoP зі знижкою 15%!</p>
+                        </div>
+                    </div>
+                    <a id="ad-link" href="#" target="_blank" class="px-3 py-1.5 bg-cyber-pink text-white text-xs font-bold rounded-lg shadow-neon-pink">Перейти</a>
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="app.openTransactionModal('income')" class="bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/5">
+                        <i class="fas fa-arrow-down">></i> Додати дохід
+                    </button>
+                    <button onclick="app.openTransactionModal('expense')" class="bg-cyber-pink/10 border border-cyber-pink/30 hover:bg-cyber-pink/20 text-cyber-pink font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-cyber-pink/5">
+                        <i class="fas fa-arrow-up"></i> Додати витрату
+                    </button>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="bg-cyber-card border border-cyber-border rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-sm uppercase tracking-wider text-cyber-muted">Останні операції</h3>
+                        <button onclick="app.switchTab('analytics')" class="text-xs text-cyber-cyan hover:underline">Всі дані</button>
+                    </div>
+                    <div id="transactions-list" class="space-y-3">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics View -->
+            <section id="view-analytics" class="space-y-6 hidden">
+                <div class="bg-cyber-card border border-cyber-border rounded-2xl p-4">
+                    <h3 class="font-bold text-sm uppercase tracking-wider text-cyber-muted mb-4">Структура витрат</h3>
+                    <div class="w-full h-64 flex items-center justify-center">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- AI Budget Advisor -->
+                <div class="bg-gradient-to-r from-cyber-cyan/10 to-cyber-purple/10 border border-cyber-cyan/30 rounded-2xl p-4 relative overflow-hidden">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-cyber-cyan/20 flex items-center justify-center text-cyber-cyan shrink-0 mt-0.5">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-cyber-cyan">AI Cyber Advisor</h4>
+                            <p id="ai-advice-text" class="text-xs text-cyber-muted mt-1 leading-relaxed">
+                                Аналізую поточні фінансові потоки... Рекомендую зменшити витрати на розваги та сфокусуватися на закритті комунальних платежів.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="view-settings" class="space-y-6 hidden">
+                <div class="bg-cyber-card border border-cyber-border rounded-2xl p-4 space-y-4">
+                    <h3 class="font-bold text-sm uppercase tracking-wider text-cyber-muted">Налаштування термінала</h3>
+                    
+                    <div>
+                        <label class="block text-xs text-cyber-muted mb-1">Мова інтерфейсу</label>
+                        <select id="setting-lang" onchange="app.updateSettings()" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-cyan">
+                            <option value="uk">Українська</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-cyber-muted mb-1">Тема оформлення</label>
+                        <select id="setting-theme" onchange="app.updateSettings()" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-cyan">
+                            <option value="cyberpunk">Cyberpunk Neon</option>
+                            <option value="stealth">Dark Stealth</option>
+                            <option value="sci-fi">Sci-Fi Light</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-cyber-muted mb-1">Валюта</label>
+                        <select id="setting-currency" onchange="app.updateSettings()" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-cyan">
+                            <option value="₴">UAH (₴)</option>
+                            <option value="$">USD ($)</option>
+                            <option value="€">EUR (€)</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4 border-t border-cyber-border flex items-center justify-between">
+                        <span class="text-xs text-cyber-muted">Нагадування в Telegram</span>
+                        <input type="checkbox" id="setting-notifications" checked onchange="app.updateSettings()" class="w-4 h-4 accent-cyber-cyan">
+                    </div>
+
+                    <div class="pt-2 flex gap-2">
+                        <button onclick="app.exportData()" class="flex-1 bg-cyber-border hover:bg-cyber-border/80 text-xs font-bold py-2.5 rounded-xl transition-all">Експорт</button>
+                        <button onclick="app.importDataPrompt()" class="flex-1 bg-cyber-border hover:bg-cyber-border/80 text-xs font-bold py-2.5 rounded-xl transition-all">Імпорт</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-cyber-card/80 backdrop-blur-md border-t border-cyber-border px-6 py-3 flex items-center justify-between z-30">
+            <button onclick="app.switchTab('dashboard')" id="nav-btn-dashboard" class="flex flex-col items-center gap-1 text-cyber-cyan transition-all">
+                <i class="fas fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-mono uppercase">Головна</span>
+            </button>
+            <button onclick="app.switchTab('analytics')" id="nav-btn-analytics" class="flex flex-col items-center gap-1 text-cyber-muted hover:text-cyber-text transition-all">
+                <i class="fas fa-chart-line text-lg"></i>
+                <span class="text-[10px] font-mono uppercase">Аналіз</span>
+            </button>
+            <button onclick="app.switchTab('settings')" id="nav-btn-settings" class="flex flex-col items-center gap-1 text-cyber-muted hover:text-cyber-text transition-all">
+                <i class="fas fa-sliders-h text-lg"></i>
+                <span class="text-[10px] font-mono uppercase">Налаштування</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Transaction Modal -->
+    <div id="transaction-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-cyber-bg/80 backdrop-blur-sm p-4 hidden">
+        <div class="w-full max-w-md bg-cyber-card border border-cyber-border rounded-2xl p-6 shadow-neon-pink relative">
+            <div class="flex items-center justify-between mb-4">
+                <h3 id="modal-title" class="font-bold uppercase tracking-wider text-sm">Додати транзакцію</h3>
+                <button onclick="app.closeModal('transaction-modal')" class="text-cyber-muted hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="transaction-form" onsubmit="app.saveTransaction(event)" class="space-y-4">
+                <input type="hidden" id="tx-type">
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Сума</label>
+                    <input type="number" step="0.01" id="tx-amount" required class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyber-cyan" placeholder="0.00">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Категорія</label>
+                    <select id="tx-category" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyber-cyan">
+                        <!-- Dynamically populated -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Коментар / Примітка</label>
+                    <input type="text" id="tx-comment" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-cyber-cyan" placeholder="Наприклад: Закупка матеріалів S.C.R.P.">
+                </div>
+                <div>
+                    <label class="block text-xs uppercase tracking-wider text-cyber-muted mb-1">Фото чека / товару (необов'язково)</label>
+                    <input type="file" id="tx-image" accept="image/*" class="w-full text-xs text-cyber-muted file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-cyber-cyan/10 file:text-cyber-cyan hover:file:bg-cyber-cyan/20">
+                    <div id="image-preview" class="mt-2 hidden">
+                        <img id="preview-img" src="" alt="Preview" class="w-full h-32 object-cover rounded-xl border border-cyber-border">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-gradient-to-r from-cyber-cyan to-cyber-pink text-cyber-bg font-bold py-3 rounded-xl shadow-neon-cyan">
+                    ЗБЕРЕГТИ ОПЕРАЦІЮ
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-cyber-bg/80 backdrop-blur-sm p-4 hidden">
+        <div class="w-full max-w-lg bg-cyber-card border border-cyber-border rounded-2xl p-6 shadow-neon-purple relative max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-bold uppercase tracking-wider text-sm text-cyber-pink"><i class="fas fa-shield-alt"></i> Адмін-Панель S.C.R.P.</h3>
+                <button onclick="app.closeModal('admin-modal')" class="text-cyber-muted hover:text-white"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <div id="admin-auth-container">
+                <p class="text-xs text-cyber-muted mb-3">Введіть секретний код адміністратора для доступу до термінала управління.</p>
+                <div class="flex gap-2">
+                    <input type="password" id="admin-code-input" class="flex-1 bg-cyber-bg border border-cyber-border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyber-pink" placeholder="Секретний код...">
+                    <button onclick="app.verifyAdmin()" class="bg-cyber-pink text-white px-4 py-2 rounded-xl text-xs font-bold shadow-neon-pink">Вхід</button>
+                </div>
+            </div>
+
+            <div id="admin-content-container" class="space-y-6 hidden mt-4">
+                <div class="p-3 bg-cyber-bg rounded-xl border border-cyber-border">
+                    <h4 class="text-xs uppercase tracking-wider text-cyber-cyan font-bold mb-2">Статистика користувачів</h4>
+                    <p class="text-xs text-cyber-muted">Зареєстрованих акаунтів у базі: <span id="admin-user-count" class="text-white font-bold">1</span></p>
+                    <p class="text-xs text-cyber-muted">Активних сесій WebSocket: <span class="text-emerald-400 font-bold">Connected</span></p>
+                </div>
+
+                <div class="space-y-3">
+                    <h4 class="text-xs uppercase tracking-wider text-cyber-pink font-bold">Управління рекламними банерами</h4>
+                    <div>
+                        <label class="block text-[11px] text-cyber-muted mb-1">Заголовок промо</label>
+                        <input type="text" id="admin-ad-title" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-pink">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-cyber-muted mb-1">Текст промо</label>
+                        <textarea id="admin-ad-text" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-pink"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] text-cyber-muted mb-1">Посилання (URL)</label>
+                        <input type="text" id="admin-ad-link" class="w-full bg-cyber-bg border border-cyber-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-cyber-pink">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="checkbox" id="admin-ad-active" class="accent-cyber-pink">
+                        <label class="text-xs text-cyber-muted">Відображати банер у користувачів</label>
+                    </div>
+                    <button onclick="app.saveAdminAds()" class="w-full bg-cyber-pink text-white font-bold py-2.5 rounded-xl text-xs shadow-neon-pink">Застосувати налаштування</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
