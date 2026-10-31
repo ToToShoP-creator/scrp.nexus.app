@@ -7,7 +7,7 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
 const token = process.env.TELEGRAM_BOT_TOKEN || "9236187437:AAHBq3im6TITQFVc_G9Wyg8l4acZZi_0wNA";
-const webAppUrl = "https://your-github-username.github.io/scrp-nexus-app/"; // Замініть на свій URL GitHub Pages
+const webAppUrl = "https://totoshop-creator.github.io/scrp.nexus.app/";
 
 const bot = new TelegramBot(token, { polling: true });
 
